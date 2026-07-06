@@ -27,9 +27,18 @@ from aegis_quant.factors.research import FactorResearchEngine
 from aegis_quant.strategy.strategies import STRATEGY_REGISTRY, run_strategy
 
 try:
-    from aegis_execution.algorithms import OrderSide, TWAPExecutor, VWAPExecutor
+    from aegis_execution.algorithms import (
+        ArrivalPriceExecutor,
+        IcebergExecutor,
+        OrderSide,
+        POVExecutor,
+        TWAPExecutor,
+        VWAPExecutor,
+    )
     from aegis_execution.simulator import ExecutionSimulator as AlgoSim
+    from aegis_execution.tca import TransactionCostAnalyzer
     from aegis_options import black_scholes, compute_greeks
+    from aegis_options.pricing import american_binomial, monte_carlo_european
     from aegis_options.surface import VolatilitySurface
     from aegis_market_maker.engine import MMConfig
     from aegis_market_maker.simulator import MMSimulator
@@ -160,6 +169,60 @@ def get_features(symbol: str):
     return {"symbol": symbol, "features": cols, "rows": len(featured)}
 
 
+def _log_experiment(kind: str, name: str, symbol: str, metrics: dict) -> None:
+    """Persist an experiment record to DuckDB."""
+    import json as _json
+
+    import duckdb
+
+    con = duckdb.connect(settings.duckdb_path)
+    con.execute(
+        """
+        CREATE TABLE IF NOT EXISTS experiments (
+            id VARCHAR, created_at TIMESTAMP, kind VARCHAR,
+            name VARCHAR, symbol VARCHAR, metrics VARCHAR
+        )
+        """
+    )
+    import uuid as _uuid
+
+    con.execute(
+        "INSERT INTO experiments VALUES (?, current_timestamp, ?, ?, ?, ?)",
+        [_uuid.uuid4().hex[:10], kind, name, symbol, _json.dumps({k: round(float(v), 6) for k, v in metrics.items() if isinstance(v, (int, float))})],
+    )
+    con.close()
+
+
+@app.get("/api/v1/experiments")
+def list_experiments(limit: int = 50):
+    import json as _json
+
+    import duckdb
+
+    con = duckdb.connect(settings.duckdb_path, read_only=True)
+    try:
+        rows = con.execute(
+            "SELECT id, created_at, kind, name, symbol, metrics FROM experiments ORDER BY created_at DESC LIMIT ?",
+            [limit],
+        ).fetchall()
+    except duckdb.CatalogException:
+        rows = []
+    con.close()
+    return {
+        "experiments": [
+            {
+                "id": r[0],
+                "created_at": str(r[1]),
+                "kind": r[2],
+                "name": r[3],
+                "symbol": r[4],
+                "metrics": _json.loads(r[5]),
+            }
+            for r in rows
+        ]
+    }
+
+
 @app.post("/api/v1/backtest")
 def run_backtest(req: BacktestRequest):
     REQUESTS.labels(endpoint="backtest").inc()
@@ -179,13 +242,38 @@ def run_backtest(req: BacktestRequest):
     bt = EventDrivenBacktester(BacktestConfig(initial_cash=req.initial_cash))
     result = bt.run(df, strategy.get_handler())
 
+    eq = result.equity_curve
+    peak = eq.cummax()
+    drawdown = ((eq - peak) / peak).fillna(0)
+    rets = result.returns
+    rolling_sharpe = (
+        (rets.rolling(30).mean() / rets.rolling(30).std() * (252**0.5)).fillna(0)
+        if len(rets) > 30 else pd.Series(dtype=float)
+    )
+
+    trades = [
+        {
+            "timestamp": str(f.timestamp),
+            "side": f.side.value,
+            "quantity": round(f.quantity, 4),
+            "price": round(f.price, 4),
+            "commission": round(f.commission, 4),
+        }
+        for f in result.fills[-100:]
+    ]
+
+    _log_experiment("backtest", req.strategy, req.symbol, result.metrics)
+
     return {
         "strategy": req.strategy,
         "symbol": req.symbol,
         "metrics": result.metrics,
         "n_trades": len(result.fills),
-        "equity_final": float(result.equity_curve.iloc[-1]) if len(result.equity_curve) else req.initial_cash,
-        "equity_curve": {str(k): v for k, v in result.equity_curve.items()},
+        "equity_final": float(eq.iloc[-1]) if len(eq) else req.initial_cash,
+        "equity_curve": {str(k): round(float(v), 2) for k, v in eq.items()},
+        "drawdown": {str(k): round(float(v), 5) for k, v in drawdown.items()},
+        "rolling_sharpe": {str(k): round(float(v), 3) for k, v in rolling_sharpe.items()},
+        "trades": trades,
     }
 
 
@@ -211,6 +299,91 @@ def optimize_portfolio(req: OptimizeRequest):
         weights = portfolio_optimizer.markowitz(mu, cov, req.method)
 
     return {"method": req.method, "weights": weights.to_dict()}
+
+
+def _aligned_returns(symbols: list[str]) -> pd.DataFrame:
+    returns = pd.DataFrame()
+    for sym in symbols:
+        df = data_engine.get_bars(sym)
+        if not df.empty:
+            returns[sym] = df.set_index("timestamp")["close"].pct_change()
+    return returns.dropna()
+
+
+class PortfolioBacktestRequest(BaseModel):
+    weights: dict[str, float]
+    initial_cash: float = 1_000_000
+
+
+@app.get("/api/v1/portfolio/frontier")
+def efficient_frontier(symbols: str, n_portfolios: int = 3000):
+    """Random-portfolio efficient frontier cloud + individual assets + max-Sharpe point."""
+    import numpy as np
+
+    syms = [s.strip() for s in symbols.split(",") if s.strip()]
+    returns = _aligned_returns(syms)
+    if returns.empty or len(returns.columns) < 2:
+        raise HTTPException(404, "Need at least 2 symbols with overlapping data")
+
+    mu = returns.mean().values * 252
+    cov = returns.cov().values * 252
+    rng = np.random.default_rng(42)
+    n_assets = len(returns.columns)
+
+    w = rng.dirichlet(np.ones(n_assets), size=n_portfolios)
+    port_ret = w @ mu
+    port_vol = np.sqrt(np.einsum("ij,jk,ik->i", w, cov, w))
+    sharpe = np.where(port_vol > 0, port_ret / port_vol, 0)
+
+    best = int(np.argmax(sharpe))
+    # Downsample cloud for the UI
+    step = max(1, n_portfolios // 800)
+    cloud = [
+        {"vol": round(float(port_vol[i]), 5), "ret": round(float(port_ret[i]), 5), "sharpe": round(float(sharpe[i]), 3)}
+        for i in range(0, n_portfolios, step)
+    ]
+    assets = [
+        {"symbol": c, "vol": round(float(np.sqrt(cov[i][i])), 5), "ret": round(float(mu[i]), 5)}
+        for i, c in enumerate(returns.columns)
+    ]
+    return {
+        "cloud": cloud,
+        "assets": assets,
+        "max_sharpe": {
+            "vol": round(float(port_vol[best]), 5),
+            "ret": round(float(port_ret[best]), 5),
+            "sharpe": round(float(sharpe[best]), 3),
+            "weights": {c: round(float(w[best][i]), 4) for i, c in enumerate(returns.columns)},
+        },
+    }
+
+
+@app.post("/api/v1/portfolio/backtest")
+def portfolio_backtest(req: PortfolioBacktestRequest):
+    """Backtest a fixed-weight portfolio: equity curve + risk metrics."""
+    returns = _aligned_returns(list(req.weights.keys()))
+    if returns.empty:
+        raise HTTPException(404, "No return data for requested symbols")
+    weights = pd.Series(req.weights).reindex(returns.columns).fillna(0)
+    total = weights.abs().sum()
+    if total <= 0:
+        raise HTTPException(422, "Weights must not all be zero")
+    weights = weights / total
+
+    port_rets = (returns * weights).sum(axis=1)
+    equity = req.initial_cash * (1 + port_rets).cumprod()
+    peak = equity.cummax()
+    drawdown = (equity - peak) / peak
+    metrics = risk_engine.compute_all(port_rets, equity)
+
+    _log_experiment("portfolio", "fixed_weights", ",".join(req.weights.keys()), metrics)
+
+    return {
+        "weights": weights.round(4).to_dict(),
+        "metrics": metrics,
+        "equity_curve": {str(k): round(float(v), 2) for k, v in equity.items()},
+        "drawdown": {str(k): round(float(v), 5) for k, v in drawdown.items()},
+    }
 
 
 def _build_ml_dataset(symbol: str, target_horizon: int) -> tuple[pd.DataFrame, pd.Series, pd.DataFrame]:
@@ -382,6 +555,88 @@ def factor_ic(symbol: str, horizon: int = 5):
     return {"symbol": symbol, "ic": ic, "quantile_spread": spread}
 
 
+FACTOR_CANDIDATES = [
+    "momentum_12", "momentum_26", "rsi_14", "macd", "zscore_20",
+    "rolling_vol_20", "volume_zscore", "realized_vol_20", "vol_clustering", "volume_profile",
+]
+
+
+@app.get("/api/v1/factors/{symbol}/analysis")
+def factor_analysis(symbol: str, horizon: int = 5):
+    """Multi-factor IC table + rolling IC of the strongest factor."""
+    df = data_engine.get_bars(symbol)
+    if df.empty:
+        raise HTTPException(404, f"No data for {symbol}")
+    featured = feature_engine.compute_all(df)
+    fwd = featured["close"].shift(-horizon) / featured["close"] - 1
+
+    table = []
+    for factor in FACTOR_CANDIDATES:
+        if factor not in featured.columns:
+            continue
+        series = featured[factor]
+        ic = factor_engine.factor_ic(series, fwd)
+        spread = factor_engine.quantile_spread(series, fwd)
+        table.append({
+            "factor": factor,
+            "ic": round(ic, 4),
+            "abs_ic": round(abs(ic), 4),
+            "long_short": round(spread.get("long_short", 0.0), 5),
+        })
+    table.sort(key=lambda r: r["abs_ic"], reverse=True)
+
+    rolling = {}
+    if table:
+        best = table[0]["factor"]
+        roll = factor_engine.rolling_ic(featured[best], fwd, window=60).dropna()
+        ts = featured.loc[roll.index, "timestamp"].astype(str)
+        rolling = {"factor": best, "series": {str(t): round(float(v), 4) for t, v in zip(ts, roll)}}
+
+    return {"symbol": symbol, "horizon": horizon, "table": table, "rolling_ic": rolling}
+
+
+@app.get("/api/v1/risk/rolling/{symbol}")
+def risk_rolling(symbol: str, window: int = 30):
+    """Rolling Sharpe and volatility series."""
+    df = data_engine.get_bars(symbol)
+    if df.empty:
+        raise HTTPException(404, f"No data for {symbol}")
+    rets = df.set_index("timestamp")["close"].pct_change().dropna()
+    roll_sharpe = (rets.rolling(window).mean() / rets.rolling(window).std() * (252**0.5)).dropna()
+    roll_vol = (rets.rolling(window).std() * (252**0.5)).dropna()
+    return {
+        "window": window,
+        "rolling_sharpe": {str(k): round(float(v), 3) for k, v in roll_sharpe.items()},
+        "rolling_vol": {str(k): round(float(v), 4) for k, v in roll_vol.items()},
+    }
+
+
+@app.get("/api/v1/risk/correlation")
+def risk_correlation(symbols: str | None = None):
+    """Correlation matrix across all (or selected) symbols."""
+    syms = [s.strip() for s in symbols.split(",")] if symbols else data_engine.list_symbols()
+    returns = _aligned_returns(syms)
+    if returns.empty or len(returns.columns) < 2:
+        raise HTTPException(404, "Need at least 2 symbols with overlapping data")
+    corr = returns.corr().round(3)
+    return {"symbols": list(corr.columns), "matrix": corr.values.tolist()}
+
+
+@app.get("/api/v1/risk/montecarlo/{symbol}")
+def risk_montecarlo(symbol: str, n_sims: int = 2000, horizon: int = 60):
+    """Monte Carlo fan chart: percentile bands of simulated equity paths."""
+    import numpy as np
+
+    df = data_engine.get_bars(symbol)
+    if df.empty:
+        raise HTTPException(404, f"No data for {symbol}")
+    rets = df["close"].pct_change().dropna()
+    paths = risk_engine.monte_carlo(rets, n_sims=n_sims, horizon=horizon)
+    percentiles = [5, 25, 50, 75, 95]
+    bands = {f"p{p}": np.percentile(paths.values, p, axis=0).round(4).tolist() for p in percentiles}
+    return {"horizon": horizon, "n_sims": n_sims, "steps": list(range(1, horizon + 1)), "bands": bands}
+
+
 @app.get("/api/v1/attribution/{symbol}")
 def pnl_attribution(symbol: str):
     df = data_engine.get_bars(symbol)
@@ -407,14 +662,43 @@ def simulate_execution(req: ExecutionRequest):
     start = df["timestamp"].iloc[0].to_pydatetime()
     end = df["timestamp"].iloc[min(len(df) - 1, req.n_slices)].to_pydatetime()
     side = OrderSide.BUY if req.side == "buy" else OrderSide.SELL
-    algo = TWAPExecutor(req.n_slices) if req.algorithm == "twap" else VWAPExecutor(req.n_slices)
-    schedule = algo.schedule(req.quantity, side, req.symbol, start, end, df)
+    algos = {
+        "twap": lambda: TWAPExecutor(req.n_slices),
+        "vwap": lambda: VWAPExecutor(req.n_slices),
+        "pov": lambda: POVExecutor(participation_rate=0.15, n_slices=req.n_slices),
+        "iceberg": lambda: IcebergExecutor(display_pct=0.15, interval_sec=3600),
+        "arrival_price": lambda: ArrivalPriceExecutor(urgency=0.6, n_slices=req.n_slices),
+    }
+    if req.algorithm not in algos:
+        raise HTTPException(400, f"Unknown algorithm: {req.algorithm}. Available: {list(algos)}")
+    schedule = algos[req.algorithm]().schedule(req.quantity, side, req.symbol, start, end, df)
     result = AlgoSim().run(schedule, df)
+
+    # TCA vs standard benchmarks over the execution window
+    window = df.iloc[: max(req.n_slices, 2)]
+    benchmarks = {
+        "arrival": float(df["close"].iloc[0]),
+        "twap": float(window["close"].mean()),
+        "vwap": float((window["close"] * window["volume"]).sum() / max(window["volume"].sum(), 1e-9)),
+    }
+    fills_df = pd.DataFrame([
+        {"price": f.price, "quantity": f.quantity, "commission": f.commission,
+         "slippage": f.quantity * f.price * f.slippage_bps / 10_000}
+        for f in result.fills
+    ])
+    tca = TransactionCostAnalyzer().analyze(fills_df, benchmarks, req.side) if not fills_df.empty else {}
+
+    _log_experiment("execution", req.algorithm, req.symbol, {
+        "is_bps": result.implementation_shortfall_bps, **{k: v for k, v in result.metrics.items()},
+    })
+
     return {
         "algorithm": req.algorithm,
         "avg_price": result.avg_price,
         "implementation_shortfall_bps": result.implementation_shortfall_bps,
         "metrics": result.metrics,
+        "tca": tca,
+        "benchmarks": benchmarks,
         "fills": [
             {
                 "timestamp": str(f.timestamp),
@@ -434,9 +718,17 @@ def price_option(req: OptionsRequest):
         raise HTTPException(503, "Platform options module not installed")
     price = black_scholes(req.spot, req.strike, req.expiry, req.rate, req.volatility, req.option_type)
     greeks = compute_greeks(req.spot, req.strike, req.expiry, req.rate, req.volatility, req.option_type)
+    binomial = american_binomial(req.spot, req.strike, req.expiry, req.rate, req.volatility, req.option_type, steps=200)
+    mc_price, mc_se = monte_carlo_european(req.spot, req.strike, req.expiry, req.rate, req.volatility, req.option_type, n_paths=30_000)
     return {
         "price": price,
         "greeks": greeks.__dict__,
+        "methods": {
+            "black_scholes": round(price, 4),
+            "binomial_american": round(binomial, 4),
+            "monte_carlo": round(mc_price, 4),
+            "monte_carlo_stderr": round(mc_se, 5),
+        },
     }
 
 
@@ -475,6 +767,9 @@ def simulate_market_maker(req: MarketMakerRequest):
             }
             for _, row in hist.iterrows()
         ]
+    _log_experiment("market_making", f"gamma={req.gamma}", req.symbol, {
+        "pnl": result.pnl, "n_fills": result.n_fills, "fill_rate": result.fill_rate,
+    })
     return {
         "pnl": result.pnl,
         "n_fills": result.n_fills,

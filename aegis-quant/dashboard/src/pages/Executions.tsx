@@ -8,6 +8,8 @@ interface ExecResult {
   avg_price: number
   implementation_shortfall_bps: number
   metrics: Record<string, number>
+  tca: Record<string, number>
+  benchmarks: Record<string, number>
   fills: Fill[]
 }
 
@@ -55,6 +57,9 @@ export default function Executions() {
         <select value={algo} onChange={e => setAlgo(e.target.value)}>
           <option value="twap">TWAP</option>
           <option value="vwap">VWAP</option>
+          <option value="pov">POV (15%)</option>
+          <option value="iceberg">Iceberg</option>
+          <option value="arrival_price">Arrival Price</option>
         </select>
         <label className="muted">Qty
           <input type="number" min={1} value={quantity} onChange={e => setQuantity(+e.target.value)} style={{ width: 80, marginLeft: 8 }} />
@@ -81,6 +86,28 @@ export default function Executions() {
             <div className="metric"><div className="label">Avg Slippage</div><div className="val">{(result.metrics.avg_slippage_bps ?? 0).toFixed(2)} bps</div></div>
             <div className="metric"><div className="label">Fills</div><div className="val">{result.fills.length}</div></div>
           </div>
+
+          {result.tca && Object.keys(result.tca).length > 0 && (
+            <div className="card" style={{ marginTop: 16 }}>
+              <h3>Transaction Cost Analysis</h3>
+              <table className="data-table">
+                <thead><tr><th>Benchmark</th><th>Benchmark Price</th><th>Cost vs Benchmark</th></tr></thead>
+                <tbody>
+                  {(['arrival', 'twap', 'vwap'] as const).map(b => (
+                    <tr key={b}>
+                      <td>{b.toUpperCase()}</td>
+                      <td>{result.benchmarks[b]?.toFixed(2) ?? '—'}</td>
+                      <td className={(result.tca[`vs_${b}_bps`] ?? 0) <= 0 ? 'positive' : 'negative'}>
+                        {(result.tca[`vs_${b}_bps`] ?? 0).toFixed(2)} bps
+                      </td>
+                    </tr>
+                  ))}
+                  <tr><td>Commission</td><td>—</td><td>{(result.tca.commission_bps ?? 0).toFixed(2)} bps</td></tr>
+                  <tr><td>Slippage</td><td>—</td><td>{(result.tca.slippage_bps ?? 0).toFixed(2)} bps</td></tr>
+                </tbody>
+              </table>
+            </div>
+          )}
 
           {fillData.length > 0 && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 16, marginTop: 16 }}>

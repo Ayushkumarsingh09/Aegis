@@ -13,6 +13,7 @@ export default function Options() {
   const [optType, setOptType] = useState<'call' | 'put'>('call')
   const [price, setPrice] = useState<number | null>(null)
   const [greeks, setGreeks] = useState<Greeks | null>(null)
+  const [methods, setMethods] = useState<Record<string, number> | null>(null)
   const [payoff, setPayoff] = useState<{ s: number; price: number; delta: number }[]>([])
   const [surface, setSurface] = useState<SurfacePoint[]>([])
   const [loading, setLoading] = useState(false)
@@ -21,12 +22,13 @@ export default function Options() {
   const calc = async () => {
     setLoading(true); setError('')
     try {
-      const r = await api<{ price: number; greeks: Greeks }>('/api/v1/options/price', {
+      const r = await api<{ price: number; greeks: Greeks; methods: Record<string, number> }>('/api/v1/options/price', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ spot, strike, expiry, rate: 0.05, volatility: vol, option_type: optType }),
       })
       setPrice(r.price)
       setGreeks(r.greeks)
+      setMethods(r.methods)
 
       // Price/delta profile across spot range — real backend calls
       const spots = Array.from({ length: 21 }, (_, i) => strike * (0.7 + i * 0.03))
@@ -80,6 +82,20 @@ export default function Options() {
           <div className="metric"><div className="label">Theta</div><div className="val">{greeks.theta.toFixed(4)}</div></div>
           <div className="metric"><div className="label">Vega</div><div className="val">{greeks.vega.toFixed(4)}</div></div>
           <div className="metric"><div className="label">Rho</div><div className="val">{greeks.rho.toFixed(4)}</div></div>
+        </div>
+      )}
+
+      {methods && (
+        <div className="card" style={{ marginTop: 16 }}>
+          <h3>Pricing Method Comparison</h3>
+          <table className="data-table">
+            <thead><tr><th>Method</th><th>Price</th><th>Note</th></tr></thead>
+            <tbody>
+              <tr><td>Black-Scholes (European)</td><td>{methods.black_scholes?.toFixed(4)}</td><td className="muted">Closed-form</td></tr>
+              <tr><td>Binomial (American, 200 steps)</td><td>{methods.binomial_american?.toFixed(4)}</td><td className="muted">Early exercise premium: {((methods.binomial_american ?? 0) - (methods.black_scholes ?? 0)).toFixed(4)}</td></tr>
+              <tr><td>Monte Carlo (30k paths)</td><td>{methods.monte_carlo?.toFixed(4)}</td><td className="muted">± {methods.monte_carlo_stderr?.toFixed(5)} stderr</td></tr>
+            </tbody>
+          </table>
         </div>
       )}
 

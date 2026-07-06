@@ -2,6 +2,19 @@
 
 All notable changes to the Aegis platform are documented here.
 
+## [1.2.0] - 2026-07-07
+
+### Added
+
+- **Backtests** — drawdown and rolling-Sharpe series, trade blotter (last 100 fills), configurable capital
+- **Executions** — all 5 algorithms exposed via API (TWAP, VWAP, POV, Iceberg, Arrival Price) with full TCA vs arrival/TWAP/VWAP benchmarks
+- **Portfolio** — random-portfolio efficient frontier endpoint with max-Sharpe point, fixed-weight portfolio backtest with equity/drawdown, optimizer weights chart
+- **Risk** — rolling Sharpe/volatility endpoints, cross-asset correlation matrix (heatmap), Monte Carlo fan chart with percentile bands
+- **Factors** — multi-factor IC analysis endpoint (10 factors ranked by |IC|) with rolling IC of the strongest factor
+- **Experiments** — every backtest, execution, portfolio, and market-making run auto-persisted to DuckDB; filterable history page
+- **Options** — pricing method comparison (Black-Scholes vs American binomial vs Monte Carlo with stderr)
+- 7 new API integration tests (30 quant tests total)
+
 ## [1.1.0] - 2026-07-07
 
 ### Added

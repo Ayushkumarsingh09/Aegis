@@ -1,58 +1,91 @@
-import { useEffect, useState } from 'react'
-import { getStrategies, getSymbols, runBacktest } from '../api'
+import { useCallback, useEffect, useState } from 'react'
+import { api } from '../api'
 
 interface Experiment {
-  strategy: string
+  id: string
+  created_at: string
+  kind: string
+  name: string
   symbol: string
   metrics: Record<string, number>
 }
 
+const KIND_COLORS: Record<string, string> = {
+  backtest: 'blue', execution: 'green', portfolio: 'blue', market_making: 'red',
+}
+
 export default function Experiments() {
   const [experiments, setExperiments] = useState<Experiment[]>([])
-  const [strategy, setStrategy] = useState('mean_reversion')
-  const [symbol, setSymbol] = useState('BTC-USD')
-  const [strategies, setStrategies] = useState<string[]>([])
-  const [symbols, setSymbols] = useState<string[]>([])
+  const [kindFilter, setKindFilter] = useState('all')
+  const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    getStrategies().then(r => setStrategies(r.strategies))
-    getSymbols().then(r => {
-      setSymbols(r.symbols)
-      if (r.symbols.length) setSymbol(r.symbols[0])
-    })
+  const refresh = useCallback(() => {
+    setLoading(true)
+    api<{ experiments: Experiment[] }>('/api/v1/experiments')
+      .then(r => setExperiments(r.experiments))
+      .catch(() => setExperiments([]))
+      .finally(() => setLoading(false))
   }, [])
 
-  const run = async () => {
-    const r = await runBacktest({ strategy, symbol }) as { metrics: Record<string, number> }
-    setExperiments(prev => [{ strategy, symbol, metrics: r.metrics }, ...prev])
+  useEffect(() => { refresh() }, [refresh])
+
+  const kinds = ['all', ...new Set(experiments.map(e => e.kind))]
+  const filtered = kindFilter === 'all' ? experiments : experiments.filter(e => e.kind === kindFilter)
+
+  const keyMetric = (e: Experiment): [string, number] | null => {
+    for (const k of ['sharpe', 'is_bps', 'pnl', 'total_return']) {
+      if (k in e.metrics) return [k, e.metrics[k]]
+    }
+    const first = Object.entries(e.metrics)[0]
+    return first ?? null
   }
 
   return (
-    <div className="page">
+    <div className="page fade-in">
       <h2>Experiments</h2>
+      <p className="muted" style={{ marginBottom: 16 }}>
+        Every backtest, execution, portfolio, and market-making run is persisted automatically.
+      </p>
       <div className="form-row">
-        <select value={strategy} onChange={e => setStrategy(e.target.value)}>
-          {strategies.map(s => <option key={s} value={s}>{s}</option>)}
+        <select value={kindFilter} onChange={e => setKindFilter(e.target.value)}>
+          {kinds.map(k => <option key={k} value={k}>{k}</option>)}
         </select>
-        <select value={symbol} onChange={e => setSymbol(e.target.value)}>
-          {symbols.map(s => <option key={s} value={s}>{s}</option>)}
-        </select>
-        <button className="btn" onClick={run}>Run Experiment</button>
+        <button className="btn" onClick={refresh} disabled={loading}>{loading ? 'Loading…' : 'Refresh'}</button>
+        <span className="muted">{filtered.length} experiments</span>
       </div>
-      <table className="data-table">
-        <thead><tr><th>Strategy</th><th>Symbol</th><th>Sharpe</th><th>Max DD</th><th>Return</th></tr></thead>
-        <tbody>
-          {experiments.map((e, i) => (
-            <tr key={i}>
-              <td>{e.strategy}</td>
-              <td>{e.symbol}</td>
-              <td>{e.metrics.sharpe?.toFixed(3)}</td>
-              <td>{((e.metrics.max_drawdown ?? 0) * 100).toFixed(2)}%</td>
-              <td>{((e.metrics.total_return ?? 0) * 100).toFixed(2)}%</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+
+      {filtered.length === 0 && !loading && (
+        <div className="card"><p className="muted">No experiments yet — run a backtest, execution, or simulation and it will appear here.</p></div>
+      )}
+
+      {filtered.length > 0 && (
+        <table className="data-table">
+          <thead><tr><th>Time</th><th>Kind</th><th>Name</th><th>Symbol</th><th>Key Metric</th><th>All Metrics</th></tr></thead>
+          <tbody>
+            {filtered.map(e => {
+              const km = keyMetric(e)
+              return (
+                <tr key={e.id}>
+                  <td>{e.created_at.slice(0, 19)}</td>
+                  <td><span className={`badge ${KIND_COLORS[e.kind] ?? 'blue'}`}>{e.kind}</span></td>
+                  <td>{e.name}</td>
+                  <td>{e.symbol}</td>
+                  <td>
+                    {km && (
+                      <span className={km[1] >= 0 ? 'positive' : 'negative'}>
+                        {km[0]}: {km[1].toFixed(3)}
+                      </span>
+                    )}
+                  </td>
+                  <td style={{ fontSize: 11, color: 'var(--muted)', maxWidth: 360, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {Object.entries(e.metrics).map(([k, v]) => `${k}=${v.toFixed(2)}`).join(' · ')}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      )}
     </div>
   )
 }
