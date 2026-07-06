@@ -6,7 +6,11 @@ cmake-build-*/
 *.so
 *.dylib
 *.exe
-data/
+/data/
+aegis-quant/data/*.duckdb
+aegis-quant/data/mlflow.db
+!aegis-quant/data/sample/
+!aegis-quant/data/sample/**
 *.log
 .vscode/
 .idea/

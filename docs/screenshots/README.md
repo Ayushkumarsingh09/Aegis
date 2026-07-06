@@ -1,15 +1,18 @@
 # Screenshots
 
-Capture screenshots after starting the stack:
+Platform UI screenshots for documentation.
+
+| File | Description |
+|------|-------------|
+| [portal.svg](portal.svg) | Unified platform homepage |
+| [quant-dashboard.svg](quant-dashboard.svg) | Quant research dashboard |
+| [exchange-dashboard.svg](exchange-dashboard.svg) | Exchange order book UI |
+
+Regenerate after UI changes:
 
 ```bash
-docker compose up --build
+# Start platform, then capture with browser or:
+cd portal && npm run build
 ```
 
-Recommended captures:
-
-1. **Dashboard** — http://localhost:4000 (order book, depth chart, trades)
-2. **Grafana** — http://localhost:4001 (metrics dashboards)
-3. **API** — `curl http://localhost:9080/api/v1/status`
-
-Save PNG files to this directory for the README gallery.
+Live PNG captures can be added by running the platform and using browser devtools or Playwright.
