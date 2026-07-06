@@ -15,7 +15,8 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake g++ libssl-dev clang-tidy clang-format
+          sudo apt-get install -y build-essential cmake g++ libssl-dev
+          pip install clang-format==19.1.6
 
       - name: Check formatting
         run: |

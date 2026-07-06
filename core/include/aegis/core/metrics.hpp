@@ -10,7 +10,7 @@
 namespace aegis {
 
 class MetricsRegistry {
-public:
+   public:
     static MetricsRegistry& instance();
 
     void increment(const std::string& name, int64_t delta = 1);
@@ -21,7 +21,7 @@ public:
 
     void reset();
 
-private:
+   private:
     MetricsRegistry() = default;
 
     mutable std::mutex mutex_;
@@ -31,14 +31,14 @@ private:
 };
 
 class ScopedTimer {
-public:
+   public:
     explicit ScopedTimer(const std::string& metric_name);
     ~ScopedTimer();
 
     ScopedTimer(const ScopedTimer&) = delete;
     ScopedTimer& operator=(const ScopedTimer&) = delete;
 
-private:
+   private:
     std::string name_;
     int64_t start_ns_;
 };

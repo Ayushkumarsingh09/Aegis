@@ -1,11 +1,11 @@
 #pragma once
 
-#include "aegis/core/memory_pool.hpp"
-#include "aegis/core/types.hpp"
-
 #include <map>
 #include <unordered_map>
 #include <vector>
+
+#include "aegis/core/memory_pool.hpp"
+#include "aegis/core/types.hpp"
 
 namespace aegis {
 
@@ -29,15 +29,15 @@ struct PriceLevel {
 
 /// Cache-friendly limit order book with price-time priority.
 class OrderBook {
-public:
+   public:
     explicit OrderBook(InstrumentId instrument_id);
 
     [[nodiscard]] InstrumentId instrument_id() const { return instrument_id_; }
 
-  [[nodiscard]] std::optional<Price> best_bid() const;
-  [[nodiscard]] std::optional<Price> best_ask() const;
-  [[nodiscard]] Quantity bid_qty_at(Price price) const;
-  [[nodiscard]] Quantity ask_qty_at(Price price) const;
+    [[nodiscard]] std::optional<Price> best_bid() const;
+    [[nodiscard]] std::optional<Price> best_ask() const;
+    [[nodiscard]] Quantity bid_qty_at(Price price) const;
+    [[nodiscard]] Quantity ask_qty_at(Price price) const;
 
     void add_to_book(uint32_t pool_index, Side side, Price price);
     void remove_from_book(uint32_t pool_index);
@@ -65,7 +65,7 @@ public:
     /// Total contra-side quantity available up to limit_price (inclusive for bids/asks).
     [[nodiscard]] Quantity available_liquidity(Side taker_side, Price limit_price) const;
 
-private:
+   private:
     using BidMap = std::map<Price, PriceLevel, std::greater<Price>>;
     using AskMap = std::map<Price, PriceLevel, std::less<Price>>;
 

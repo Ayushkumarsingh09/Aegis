@@ -1,4 +1,5 @@
 #include <benchmark/benchmark.h>
+
 #include "aegis/matching/matching_engine.hpp"
 
 using namespace aegis;

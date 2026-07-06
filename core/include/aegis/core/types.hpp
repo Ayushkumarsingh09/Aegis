@@ -1,10 +1,10 @@
 #pragma once
 
+#include <chrono>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <string_view>
-#include <chrono>
-#include <optional>
 #include <vector>
 
 namespace aegis {
@@ -142,28 +142,44 @@ struct OrderEvent {
     Timestamp timestamp{0};
 };
 
-inline const char* to_string(Side s) { return s == Side::Buy ? "BUY" : "SELL"; }
+inline const char* to_string(Side s) {
+    return s == Side::Buy ? "BUY" : "SELL";
+}
 inline const char* to_string(OrderType t) {
     switch (t) {
-        case OrderType::Limit: return "LIMIT";
-        case OrderType::Market: return "MARKET";
-        case OrderType::IOC: return "IOC";
-        case OrderType::FOK: return "FOK";
-        case OrderType::PostOnly: return "POST_ONLY";
-        case OrderType::Stop: return "STOP";
-        case OrderType::StopLimit: return "STOP_LIMIT";
+        case OrderType::Limit:
+            return "LIMIT";
+        case OrderType::Market:
+            return "MARKET";
+        case OrderType::IOC:
+            return "IOC";
+        case OrderType::FOK:
+            return "FOK";
+        case OrderType::PostOnly:
+            return "POST_ONLY";
+        case OrderType::Stop:
+            return "STOP";
+        case OrderType::StopLimit:
+            return "STOP_LIMIT";
     }
     return "UNKNOWN";
 }
 inline const char* to_string(OrderStatus s) {
     switch (s) {
-        case OrderStatus::Pending: return "PENDING";
-        case OrderStatus::Accepted: return "ACCEPTED";
-        case OrderStatus::PartiallyFilled: return "PARTIALLY_FILLED";
-        case OrderStatus::Filled: return "FILLED";
-        case OrderStatus::Cancelled: return "CANCELLED";
-        case OrderStatus::Rejected: return "REJECTED";
-        case OrderStatus::Triggered: return "TRIGGERED";
+        case OrderStatus::Pending:
+            return "PENDING";
+        case OrderStatus::Accepted:
+            return "ACCEPTED";
+        case OrderStatus::PartiallyFilled:
+            return "PARTIALLY_FILLED";
+        case OrderStatus::Filled:
+            return "FILLED";
+        case OrderStatus::Cancelled:
+            return "CANCELLED";
+        case OrderStatus::Rejected:
+            return "REJECTED";
+        case OrderStatus::Triggered:
+            return "TRIGGERED";
     }
     return "UNKNOWN";
 }

@@ -1,9 +1,9 @@
 #include "aegis/core/metrics.hpp"
 
-#include "aegis/core/clock.hpp"
-
 #include <algorithm>
 #include <sstream>
+
+#include "aegis/core/clock.hpp"
 
 namespace aegis {
 

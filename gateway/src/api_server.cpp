@@ -1,20 +1,20 @@
 #include "aegis/gateway/api_server.hpp"
 
-#include "aegis/core/clock.hpp"
-#include "aegis/core/metrics.hpp"
-
 #include <httplib.h>
-#include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
+#include <nlohmann/json.hpp>
 #include <sstream>
+
+#include "aegis/core/clock.hpp"
+#include "aegis/core/metrics.hpp"
 
 namespace aegis {
 
 using json = nlohmann::json;
 
 class ApiServerImpl {
-public:
+   public:
     httplib::Server server;
     std::thread thread;
 };
@@ -48,8 +48,8 @@ std::size_t WebSocketHub::client_count() const {
     return clients_.size();
 }
 
-ApiServer::ApiServer(ExchangeMatching& matching, RiskEngine& risk,
-                     MarketDataPublisher& publisher, GatewayConfig config)
+ApiServer::ApiServer(ExchangeMatching& matching, RiskEngine& risk, MarketDataPublisher& publisher,
+                     GatewayConfig config)
     : matching_(matching),
       risk_(risk),
       publisher_(publisher),
@@ -73,24 +73,26 @@ void ApiServer::setup_routes() {
         res.set_content(status_json(), "application/json");
     });
 
-    s.Get(R"(/api/v1/instruments/(\d+)/book)", [this](const httplib::Request& req, httplib::Response& res) {
-        auto id = static_cast<InstrumentId>(std::stoul(req.matches[1]));
-        std::size_t depth = 20;
-        if (req.has_param("depth")) depth = std::stoul(req.get_param_value("depth"));
-        res.set_content(book_to_json(id, depth), "application/json");
-    });
+    s.Get(R"(/api/v1/instruments/(\d+)/book)",
+          [this](const httplib::Request& req, httplib::Response& res) {
+              auto id = static_cast<InstrumentId>(std::stoul(req.matches[1]));
+              std::size_t depth = 20;
+              if (req.has_param("depth")) depth = std::stoul(req.get_param_value("depth"));
+              res.set_content(book_to_json(id, depth), "application/json");
+          });
 
-    s.Get(R"(/api/v1/instruments/(\d+)/trades)", [this](const httplib::Request& req, httplib::Response& res) {
-        (void)req;
-        json j = json::array();
-        auto recent = publisher_.recent_messages(500);
-        for (const auto& m : recent) {
-            if (m.type == MarketDataMsgType::Trade) {
-                j.push_back(json::parse(m.payload));
-            }
-        }
-        res.set_content(j.dump(), "application/json");
-    });
+    s.Get(R"(/api/v1/instruments/(\d+)/trades)",
+          [this](const httplib::Request& req, httplib::Response& res) {
+              (void)req;
+              json j = json::array();
+              auto recent = publisher_.recent_messages(500);
+              for (const auto& m : recent) {
+                  if (m.type == MarketDataMsgType::Trade) {
+                      j.push_back(json::parse(m.payload));
+                  }
+              }
+              res.set_content(j.dump(), "application/json");
+          });
 
     s.Post("/api/v1/orders", [this](const httplib::Request& req, httplib::Response& res) {
         auto result = handle_submit_order(req.body);
@@ -118,10 +120,9 @@ void ApiServer::setup_routes() {
         j["limits"]["daily_loss_limit"] = limits.daily_loss_limit;
         j["accounts"] = json::object();
         for (const auto& [id, state] : risk_.all_accounts()) {
-            j["accounts"][std::to_string(id)] = {
-                {"net_position", state.net_position},
-                {"realized_pnl", state.realized_pnl},
-                {"exposure", state.exposure}};
+            j["accounts"][std::to_string(id)] = {{"net_position", state.net_position},
+                                                 {"realized_pnl", state.realized_pnl},
+                                                 {"exposure", state.exposure}};
         }
         res.set_content(j.dump(), "application/json");
     });
@@ -178,16 +179,24 @@ std::string ApiServer::handle_submit_order(const std::string& body) {
         req.quantity = j.at("quantity").get<Quantity>();
 
         std::string type_str = j.at("type").get<std::string>();
-        if (type_str == "LIMIT") req.type = OrderType::Limit;
-        else if (type_str == "MARKET") req.type = OrderType::Market;
-        else if (type_str == "IOC") req.type = OrderType::IOC;
-        else if (type_str == "FOK") req.type = OrderType::FOK;
-        else if (type_str == "POST_ONLY") req.type = OrderType::PostOnly;
-        else if (type_str == "STOP") req.type = OrderType::Stop;
-        else if (type_str == "STOP_LIMIT") req.type = OrderType::StopLimit;
+        if (type_str == "LIMIT")
+            req.type = OrderType::Limit;
+        else if (type_str == "MARKET")
+            req.type = OrderType::Market;
+        else if (type_str == "IOC")
+            req.type = OrderType::IOC;
+        else if (type_str == "FOK")
+            req.type = OrderType::FOK;
+        else if (type_str == "POST_ONLY")
+            req.type = OrderType::PostOnly;
+        else if (type_str == "STOP")
+            req.type = OrderType::Stop;
+        else if (type_str == "STOP_LIMIT")
+            req.type = OrderType::StopLimit;
 
         if (j.contains("price")) req.price = double_to_price(j.at("price").get<double>());
-        if (j.contains("stop_price")) req.stop_price = double_to_price(j.at("stop_price").get<double>());
+        if (j.contains("stop_price"))
+            req.stop_price = double_to_price(j.at("stop_price").get<double>());
         req.timestamp = Clock::wall_ns();
 
         auto* engine = matching_.get_engine(req.instrument_id);
@@ -195,11 +204,11 @@ std::string ApiServer::handle_submit_order(const std::string& body) {
             return R"({"error":"unknown instrument"})";
         }
 
-        Price mark = engine->book_snapshot(1).bids.empty()
-                         ? (engine->book_snapshot(1).asks.empty()
-                                ? 0
-                                : engine->book_snapshot(1).asks[0].price)
-                         : engine->book_snapshot(1).bids[0].price;
+        Price mark =
+            engine->book_snapshot(1).bids.empty()
+                ? (engine->book_snapshot(1).asks.empty() ? 0
+                                                         : engine->book_snapshot(1).asks[0].price)
+                : engine->book_snapshot(1).bids[0].price;
 
         auto risk = risk_.validate_order(req, mark);
         if (!risk.approved) {
@@ -310,12 +319,14 @@ std::string ApiServer::book_to_json(InstrumentId id, std::size_t depth) const {
     j["bids"] = json::array();
     j["asks"] = json::array();
     for (const auto& b : snap.bids) {
-        j["bids"].push_back(
-            {{"price", price_to_double(b.price)}, {"quantity", b.quantity}, {"orders", b.order_count}});
+        j["bids"].push_back({{"price", price_to_double(b.price)},
+                             {"quantity", b.quantity},
+                             {"orders", b.order_count}});
     }
     for (const auto& a : snap.asks) {
-        j["asks"].push_back(
-            {{"price", price_to_double(a.price)}, {"quantity", a.quantity}, {"orders", a.order_count}});
+        j["asks"].push_back({{"price", price_to_double(a.price)},
+                             {"quantity", a.quantity},
+                             {"orders", a.order_count}});
     }
     return j.dump();
 }
@@ -340,9 +351,8 @@ void ApiServer::start() {
     running_ = true;
     spdlog::info("Aegis API server starting on {}:{}", config_.host, config_.port);
 
-    impl_->thread = std::thread([this]() {
-        impl_->server.listen(config_.host.c_str(), config_.port);
-    });
+    impl_->thread =
+        std::thread([this]() { impl_->server.listen(config_.host.c_str(), config_.port); });
 }
 
 void ApiServer::stop() {

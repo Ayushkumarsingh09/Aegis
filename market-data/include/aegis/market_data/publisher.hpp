@@ -1,14 +1,14 @@
 #pragma once
 
-#include "aegis/core/types.hpp"
-
 #include <atomic>
 #include <deque>
-#include <functional>
 #include <fstream>
+#include <functional>
 #include <mutex>
 #include <string>
 #include <vector>
+
+#include "aegis/core/types.hpp"
 
 namespace aegis {
 
@@ -32,7 +32,7 @@ using MarketDataCallback = std::function<void(const MarketDataMessage&)>;
 
 /// Publishes market data events to subscribers.
 class MarketDataPublisher {
-public:
+   public:
     void subscribe(MarketDataCallback cb);
     void publish(const MarketDataMessage& msg);
     void publish_snapshot(const BookSnapshot& snap);
@@ -42,7 +42,7 @@ public:
     [[nodiscard]] std::size_t subscriber_count() const;
     [[nodiscard]] std::deque<MarketDataMessage> recent_messages(std::size_t limit = 100) const;
 
-private:
+   private:
     mutable std::mutex mutex_;
     std::vector<MarketDataCallback> subscribers_;
     std::deque<MarketDataMessage> history_;
@@ -51,7 +51,7 @@ private:
 
 /// Records market data to disk for replay.
 class MarketDataRecorder {
-public:
+   public:
     explicit MarketDataRecorder(std::string path);
     ~MarketDataRecorder();
 
@@ -59,7 +59,7 @@ public:
     void flush();
     [[nodiscard]] std::size_t record_count() const;
 
-private:
+   private:
     std::mutex mutex_;
     std::ofstream file_;
     std::atomic<std::size_t> count_{0};
@@ -67,7 +67,7 @@ private:
 
 /// Replays recorded market data.
 class ReplayEngine {
-public:
+   public:
     explicit ReplayEngine(std::string path);
 
     [[nodiscard]] bool load();
@@ -76,7 +76,7 @@ public:
     void replay(MarketDataCallback cb, double speed_multiplier = 1.0);
     [[nodiscard]] const std::vector<MarketDataMessage>& messages() const { return messages_; }
 
-private:
+   private:
     std::string path_;
     std::vector<MarketDataMessage> messages_;
 };

@@ -34,6 +34,8 @@ void Clock::advance_simulated(Timestamp delta) {
     simulated_time.fetch_add(delta, std::memory_order_relaxed);
 }
 
-bool Clock::is_simulated() { return simulated.load(std::memory_order_acquire); }
+bool Clock::is_simulated() {
+    return simulated.load(std::memory_order_acquire);
+}
 
 }  // namespace aegis

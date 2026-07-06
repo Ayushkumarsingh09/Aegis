@@ -1,16 +1,16 @@
 #pragma once
 
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <vector>
-#include <cassert>
 
 namespace aegis {
 
 /// Fixed-capacity slab allocator with O(1) allocate/deallocate via free list.
 template <typename T, std::size_t Capacity>
 class ObjectPool {
-public:
+   public:
     static constexpr std::size_t capacity = Capacity;
     static constexpr uint32_t INVALID_INDEX = UINT32_MAX;
 
@@ -43,7 +43,7 @@ public:
     [[nodiscard]] std::size_t available() const { return free_list_.size(); }
     [[nodiscard]] bool empty() const { return free_list_.size() == Capacity; }
 
-private:
+   private:
     std::vector<T> storage_;
     std::vector<uint32_t> free_list_;
     std::size_t allocated_{0};

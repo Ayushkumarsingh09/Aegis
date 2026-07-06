@@ -5,7 +5,7 @@
 namespace aegis {
 
 class Clock {
-public:
+   public:
     static Timestamp now_ns();
     static Timestamp wall_ns();
     static void set_simulated(Timestamp ts);

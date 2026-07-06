@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
-#include "aegis/orderbook/order_book.hpp"
+
 #include "aegis/core/types.hpp"
+#include "aegis/orderbook/order_book.hpp"
 
 using namespace aegis;
 

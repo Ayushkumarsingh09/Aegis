@@ -1,7 +1,9 @@
-#include <cstdio>
 #include <gtest/gtest.h>
-#include "aegis/market_data/publisher.hpp"
+
+#include <cstdio>
+
 #include "aegis/core/types.hpp"
+#include "aegis/market_data/publisher.hpp"
 
 using namespace aegis;
 
@@ -61,10 +63,12 @@ TEST(MarketDataTest, RecorderAndReplay) {
     EXPECT_EQ(replay.message_count(), 1);
 
     int replayed = 0;
-    replay.replay([&](const MarketDataMessage& msg) {
-        ++replayed;
-        EXPECT_EQ(msg.timestamp, 1000);
-    }, 0);
+    replay.replay(
+        [&](const MarketDataMessage& msg) {
+            ++replayed;
+            EXPECT_EQ(msg.timestamp, 1000);
+        },
+        0);
     EXPECT_EQ(replayed, 1);
 
     std::remove(path.c_str());

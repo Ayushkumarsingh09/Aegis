@@ -1,13 +1,13 @@
 #include "aegis/market_data/publisher.hpp"
 
-#include "aegis/core/clock.hpp"
-
-#include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 
 #include <chrono>
 #include <fstream>
+#include <nlohmann/json.hpp>
 #include <thread>
+
+#include "aegis/core/clock.hpp"
 
 namespace aegis {
 
@@ -41,13 +41,13 @@ void MarketDataPublisher::publish_snapshot(const BookSnapshot& snap) {
     j["asks"] = json::array();
     for (const auto& b : snap.bids) {
         j["bids"].push_back({{"price", price_to_double(b.price)},
-                              {"quantity", b.quantity},
-                              {"orders", b.order_count}});
+                             {"quantity", b.quantity},
+                             {"orders", b.order_count}});
     }
     for (const auto& a : snap.asks) {
         j["asks"].push_back({{"price", price_to_double(a.price)},
-                              {"quantity", a.quantity},
-                              {"orders", a.order_count}});
+                             {"quantity", a.quantity},
+                             {"orders", a.order_count}});
     }
 
     MarketDataMessage msg;
@@ -124,13 +124,15 @@ std::deque<MarketDataMessage> MarketDataPublisher::recent_messages(std::size_t l
 
 MarketDataRecorder::MarketDataRecorder(std::string path) : file_(path, std::ios::app) {}
 
-MarketDataRecorder::~MarketDataRecorder() { flush(); }
+MarketDataRecorder::~MarketDataRecorder() {
+    flush();
+}
 
 void MarketDataRecorder::record(const MarketDataMessage& msg) {
     std::lock_guard lock(mutex_);
     if (!file_.is_open()) return;
-    file_ << msg.timestamp << "|" << static_cast<int>(msg.type) << "|" << msg.instrument_id
-          << "|" << msg.sequence << "|" << msg.payload << "\n";
+    file_ << msg.timestamp << "|" << static_cast<int>(msg.type) << "|" << msg.instrument_id << "|"
+          << msg.sequence << "|" << msg.payload << "\n";
     count_.fetch_add(1, std::memory_order_relaxed);
 }
 

@@ -1,7 +1,8 @@
 #include <benchmark/benchmark.h>
+
+#include "aegis/core/clock.hpp"
 #include "aegis/matching/matching_engine.hpp"
 #include "aegis/risk/risk_engine.hpp"
-#include "aegis/core/clock.hpp"
 
 using namespace aegis;
 

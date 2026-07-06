@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+
 #include "aegis/risk/risk_engine.hpp"
 
 using namespace aegis;

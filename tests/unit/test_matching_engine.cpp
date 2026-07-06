@@ -1,11 +1,12 @@
 #include <gtest/gtest.h>
-#include "aegis/matching/matching_engine.hpp"
+
 #include "aegis/core/types.hpp"
+#include "aegis/matching/matching_engine.hpp"
 
 using namespace aegis;
 
 class MatchingEngineTest : public ::testing::Test {
-protected:
+   protected:
     Instrument make_instrument() {
         Instrument inst;
         inst.id = 1;

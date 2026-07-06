@@ -1,9 +1,9 @@
 #pragma once
 
-#include "aegis/core/types.hpp"
-
 #include <mutex>
 #include <unordered_map>
+
+#include "aegis/core/types.hpp"
 
 namespace aegis {
 
@@ -31,7 +31,7 @@ struct RiskCheckResult {
 
 /// Pre-trade and post-trade risk validation engine.
 class RiskEngine {
-public:
+   public:
     void set_limits(const RiskLimits& limits);
     [[nodiscard]] RiskLimits limits() const;
 
@@ -49,7 +49,7 @@ public:
 
     void reset_daily();
 
-private:
+   private:
     mutable std::mutex mutex_;
     RiskLimits limits_;
     std::unordered_map<AccountId, AccountState> accounts_;

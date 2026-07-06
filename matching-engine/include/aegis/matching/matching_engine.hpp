@@ -1,13 +1,13 @@
 #pragma once
 
-#include "aegis/core/types.hpp"
-#include "aegis/orderbook/order_book.hpp"
-
 #include <functional>
 #include <mutex>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+
+#include "aegis/core/types.hpp"
+#include "aegis/orderbook/order_book.hpp"
 
 namespace aegis {
 
@@ -15,7 +15,7 @@ using EventCallback = std::function<void(const OrderEvent&)>;
 
 /// Single-instrument matching engine with full order type support.
 class MatchingEngine {
-public:
+   public:
     explicit MatchingEngine(Instrument instrument);
 
     void set_event_callback(EventCallback cb);
@@ -30,7 +30,7 @@ public:
     [[nodiscard]] SequenceNum sequence() const { return sequence_; }
     [[nodiscard]] std::size_t pending_stop_count() const { return stop_orders_.size(); }
 
-private:
+   private:
     OrderId next_order_id();
     TradeId next_trade_id();
     SequenceNum next_sequence();
@@ -62,7 +62,7 @@ private:
 
 /// Multi-instrument exchange matching coordinator.
 class ExchangeMatching {
-public:
+   public:
     void add_instrument(Instrument instrument);
     [[nodiscard]] MatchingEngine* get_engine(InstrumentId id);
     [[nodiscard]] const MatchingEngine* get_engine(InstrumentId id) const;
@@ -72,7 +72,7 @@ public:
 
     void for_each_engine(const std::function<void(MatchingEngine&)>& fn);
 
-private:
+   private:
     std::unordered_map<InstrumentId, MatchingEngine> engines_;
 };
 

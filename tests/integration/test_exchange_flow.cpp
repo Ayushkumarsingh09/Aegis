@@ -1,9 +1,10 @@
 #include <gtest/gtest.h>
-#include "aegis/matching/matching_engine.hpp"
-#include "aegis/risk/risk_engine.hpp"
-#include "aegis/market_data/publisher.hpp"
 
 #include <unordered_set>
+
+#include "aegis/market_data/publisher.hpp"
+#include "aegis/matching/matching_engine.hpp"
+#include "aegis/risk/risk_engine.hpp"
 
 using namespace aegis;
 

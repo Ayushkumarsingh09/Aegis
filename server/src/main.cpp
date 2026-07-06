@@ -1,22 +1,24 @@
+#include <spdlog/spdlog.h>
+
+#include <atomic>
+#include <chrono>
+#include <csignal>
+#include <cstdlib>
+#include <filesystem>
+#include <memory>
+#include <thread>
+
 #include "aegis/gateway/api_server.hpp"
 #include "aegis/market_data/publisher.hpp"
 #include "aegis/matching/matching_engine.hpp"
 #include "aegis/risk/risk_engine.hpp"
 
-#include <spdlog/spdlog.h>
-
-#include <csignal>
-#include <atomic>
-#include <cstdlib>
-#include <filesystem>
-#include <memory>
-#include <thread>
-#include <chrono>
-
 namespace {
 std::atomic<bool> g_running{true};
 
-void signal_handler(int) { g_running = false; }
+void signal_handler(int) {
+    g_running = false;
+}
 }  // namespace
 
 int main(int argc, char* argv[]) {
@@ -69,7 +71,8 @@ int main(int argc, char* argv[]) {
             publisher.publish_order_event(ev);
             if (ev.trade) {
                 publisher.publish_trade(*ev.trade);
-                risk.on_fill(ev.order.account_id, ev.order.side, ev.trade->price, ev.trade->quantity);
+                risk.on_fill(ev.order.account_id, ev.order.side, ev.trade->price,
+                             ev.trade->quantity);
             }
         });
     });
