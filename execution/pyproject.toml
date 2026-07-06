@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aegis-execution"
+version = "1.0.0"
+description = "Institutional execution algorithms and transaction cost analysis"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=1.26",
+    "pandas>=2.1",
+    "pydantic>=2.6",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["aegis_execution*"]

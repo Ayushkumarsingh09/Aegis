@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aegis-options"
+version = "1.0.0"
+description = "Options pricing, Greeks, and volatility analytics"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=1.26",
+    "pandas>=2.1",
+    "scipy>=1.11",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["aegis_options*"]
