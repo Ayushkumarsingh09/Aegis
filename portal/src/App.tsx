@@ -40,10 +40,10 @@ export default function App() {
   return (
     <div className="portal">
       <nav className="nav">
-        <div className="nav-brand">
-          <div className="nav-logo">A</div>
+        <a className="nav-brand" href="/" aria-label="Aegis home">
+          <img className="nav-logo-img" src="/aegis-mark.png" alt="Aegis" />
           <span>Aegis</span>
-        </div>
+        </a>
         <div className="nav-links">
           <a href="#modules">Modules</a>
           <a href="#architecture">Architecture</a>
