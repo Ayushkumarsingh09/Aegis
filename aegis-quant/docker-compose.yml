@@ -1,0 +1,77 @@
+services:
+  quant-api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8090:8090"
+    environment:
+      - AEGIS_QUANT_AEGIS_EXCHANGE_URL=http://exchange:8080
+      - AEGIS_QUANT_DUCKDB_PATH=/app/data/aegis_quant.duckdb
+      - AEGIS_QUANT_MLFLOW_URI=sqlite:////app/data/mlflow.db
+    volumes:
+      - quant-data:/app/data
+    networks:
+      - aegis-net
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+
+  quant-dashboard:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dashboard
+    ports:
+      - "4100:80"
+    depends_on:
+      - quant-api
+    networks:
+      - aegis-net
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: aegis
+      POSTGRES_PASSWORD: aegis
+      POSTGRES_DB: aegis_quant
+    ports:
+      - "5433:5432"
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    networks:
+      - aegis-net
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    networks:
+      - aegis-net
+
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    ports:
+      - "9290:9090"
+    volumes:
+      - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - aegis-net
+
+  grafana:
+    image: grafana/grafana:10.4.0
+    ports:
+      - "4101:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=aegis
+    networks:
+      - aegis-net
+
+volumes:
+  quant-data:
+  pg-data:
+
+networks:
+  aegis-net:
+    driver: bridge

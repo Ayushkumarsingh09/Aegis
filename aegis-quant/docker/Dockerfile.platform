@@ -1,0 +1,26 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+RUN apt-get update && apt-get install -y build-essential libgomp1 && rm -rf /var/lib/apt/lists/*
+
+COPY execution/ execution/
+COPY options/ options/
+COPY market-maker/ market-maker/
+COPY analytics/ analytics/
+COPY aegis-quant/ aegis-quant/
+
+RUN pip install --no-cache-dir -e execution -e options -e market-maker -e analytics \
+    && pip install --no-cache-dir -e "aegis-quant[dev]"
+
+WORKDIR /app/aegis-quant
+RUN python scripts/generate_sample_data.py
+RUN python -c "\
+from aegis_quant.data.engine import MarketDataEngine;\
+from aegis_quant.data.connectors import CSVConnector;\
+e = MarketDataEngine();\
+e.ingest(CSVConnector('data/sample'), 'BTC-USD');\
+e.ingest(CSVConnector('data/sample'), 'ETH-USD');\
+print('Data seeded')"
+
+EXPOSE 8090
+CMD ["uvicorn", "aegis_quant.api.app:app", "--host", "0.0.0.0", "--port", "8090"]

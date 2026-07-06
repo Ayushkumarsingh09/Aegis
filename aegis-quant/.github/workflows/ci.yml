@@ -1,0 +1,48 @@
+name: Aegis Quant CI
+
+on:
+  push:
+    branches: [main, master]
+    paths: ['aegis-quant/**']
+  pull_request:
+    branches: [main, master]
+    paths: ['aegis-quant/**']
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: aegis-quant
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install
+        run: pip install -e ".[dev]"
+      - name: Generate sample data
+        run: python scripts/generate_sample_data.py
+      - name: Seed DuckDB
+        run: |
+          python -c "
+          from aegis_quant.data.engine import MarketDataEngine
+          from aegis_quant.data.connectors import CSVConnector
+          e = MarketDataEngine()
+          e.ingest(CSVConnector('data/sample'), 'BTC-USD')
+          e.ingest(CSVConnector('data/sample'), 'ETH-USD')
+          "
+      - name: Test
+        run: pytest tests/ -v
+
+  dashboard:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: aegis-quant/dashboard
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install && npm run build
