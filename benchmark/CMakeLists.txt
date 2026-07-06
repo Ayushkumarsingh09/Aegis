@@ -3,4 +3,4 @@ add_executable(aegis_benchmark
     latency_benchmark.cpp
 )
 target_link_libraries(aegis_benchmark PRIVATE
-    aegis_matching aegis_core benchmark::benchmark_main)
+    aegis_matching aegis_risk aegis_core benchmark::benchmark_main)
