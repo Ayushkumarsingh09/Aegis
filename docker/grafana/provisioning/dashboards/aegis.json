@@ -1,0 +1,41 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "title": "Orders Received",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "targets": [{ "expr": "aegis_orders_received_total", "legendFormat": "received" }]
+    },
+    {
+      "title": "Trades Executed",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "targets": [{ "expr": "aegis_trades_total", "legendFormat": "trades" }]
+    },
+    {
+      "title": "Order Latency P99 (μs)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "targets": [{ "expr": "aegis_order_latency_us_p99", "legendFormat": "p99" }]
+    },
+    {
+      "title": "Orders Rejected",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "targets": [{ "expr": "rate(aegis_orders_rejected_total[1m])", "legendFormat": "rejected/s" }]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["aegis"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "title": "Aegis Exchange",
+  "uid": "aegis-exchange",
+  "version": 1
+}

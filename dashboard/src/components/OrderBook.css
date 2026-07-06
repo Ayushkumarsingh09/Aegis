@@ -1,0 +1,104 @@
+.orderbook {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.orderbook.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  min-height: 400px;
+}
+
+.orderbook-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.orderbook-header h3 {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+}
+
+.spread {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--yellow);
+}
+
+.orderbook-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr 0.6fr;
+  padding: 6px 16px;
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.orderbook-columns span:last-child {
+  text-align: right;
+}
+
+.asks, .bids {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.level {
+  display: grid;
+  grid-template-columns: 1fr 1fr 0.6fr;
+  padding: 3px 16px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  position: relative;
+}
+
+.level .price, .level .qty, .level .orders {
+  position: relative;
+  z-index: 1;
+}
+
+.level .orders {
+  text-align: right;
+  color: var(--text-muted);
+}
+
+.depth-bar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  opacity: 0.15;
+  transition: width 0.3s ease;
+}
+
+.ask .depth-bar { background: var(--red); }
+.bid .depth-bar { background: var(--green); }
+
+.ask .price { color: var(--red); }
+.bid .price { color: var(--green); }
+
+.mid-price {
+  text-align: center;
+  padding: 8px;
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 600;
+  background: var(--bg-tertiary);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  color: var(--accent);
+}

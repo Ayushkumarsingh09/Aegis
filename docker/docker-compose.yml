@@ -1,0 +1,60 @@
+services:
+  exchange:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "9080:8080"
+    volumes:
+      - exchange-data:/app/data
+    networks:
+      - aegis
+    restart: unless-stopped
+
+  dashboard:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dashboard
+    ports:
+      - "4000:80"
+    depends_on:
+      - exchange
+    networks:
+      - aegis
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    ports:
+      - "9190:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    networks:
+      - aegis
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:10.4.0
+    ports:
+      - "4001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=aegis
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+    networks:
+      - aegis
+    restart: unless-stopped
+
+volumes:
+  exchange-data:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  aegis:
+    driver: bridge

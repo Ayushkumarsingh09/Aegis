@@ -1,0 +1,28 @@
+.depth-chart {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  height: 100%;
+}
+
+.depth-chart.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  min-height: 300px;
+}
+
+.depth-chart .panel-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.depth-chart .panel-header h3 {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+}
