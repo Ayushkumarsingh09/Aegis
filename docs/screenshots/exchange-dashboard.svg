@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675">
+  <rect width="1200" height="675" fill="#0a0e17"/>
+  <text x="600" y="50" fill="#eef1f8" font-family="Inter,sans-serif" font-size="24" font-weight="700" text-anchor="middle">Aegis Exchange  Order Book</text>
+  <rect x="100" y="80" width="480" height="520" rx="8" fill="#161e2e" stroke="#243044"/>
+  <text x="130" y="120" fill="#22c55e" font-family="JetBrains Mono,monospace" font-size="13">50125.00  12.5</text>
+  <text x="130" y="145" fill="#22c55e" font-family="JetBrains Mono,monospace" font-size="13">50124.50  28.3</text>
+  <text x="130" y="170" fill="#22c55e" font-family="JetBrains Mono,monospace" font-size="13">50124.00  45.1</text>
+  <text x="130" y="210" fill="#6b7a94" font-family="Inter,sans-serif" font-size="12">--- spread 0.50 ---</text>
+  <text x="130" y="240" fill="#ef4444" font-family="JetBrains Mono,monospace" font-size="13">50123.50  31.7</text>
+  <text x="130" y="265" fill="#ef4444" font-family="JetBrains Mono,monospace" font-size="13">50123.00  19.2</text>
+  <text x="130" y="290" fill="#ef4444" font-family="JetBrains Mono,monospace" font-size="13">50122.50   8.4</text>
+  <rect x="620" y="80" width="480" height="250" rx="8" fill="#161e2e" stroke="#243044"/>
+  <text x="640" y="110" fill="#eef1f8" font-family="Inter,sans-serif" font-size="14" font-weight="600">Depth Chart</text>
+  <rect x="640" y="200" width="120" height="80" fill="#22c55e" opacity="0.3"/>
+  <rect x="760" y="180" width="120" height="100" fill="#22c55e" opacity="0.5"/>
+  <rect x="880" y="160" width="120" height="120" fill="#22c55e" opacity="0.7"/>
+  <rect x="640" y="200" width="120" height="60" fill="#ef4444" opacity="0.3"/>
+  <rect x="760" y="210" width="120" height="50" fill="#ef4444" opacity="0.5"/>
+  <rect x="880" y="220" width="120" height="40" fill="#ef4444" opacity="0.7"/>
+  <rect x="620" y="360" width="480" height="240" rx="8" fill="#161e2e" stroke="#243044"/>
+  <text x="640" y="390" fill="#eef1f8" font-family="Inter,sans-serif" font-size="14" font-weight="600">Recent Trades</text>
+  <text x="640" y="420" fill="#6b7a94" font-family="JetBrains Mono,monospace" font-size="12">14:32:01  BUY  50124.50  2.5</text>
+  <text x="640" y="445" fill="#6b7a94" font-family="JetBrains Mono,monospace" font-size="12">14:32:00  SELL 50123.00  1.0</text>
+  <text x="640" y="470" fill="#6b7a94" font-family="JetBrains Mono,monospace" font-size="12">14:31:58  BUY  50124.00  5.0</text>
+</svg>

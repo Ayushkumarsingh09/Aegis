@@ -1,0 +1,183 @@
+openapi: 3.0.3
+info:
+  title: Aegis Exchange API
+  description: Institutional-grade electronic exchange REST API
+  version: 1.0.0
+  contact:
+    name: Aegis Exchange
+servers:
+  - url: http://localhost:9080
+    description: Local development
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      tags: [System]
+      responses:
+        '200':
+          description: Service is healthy
+
+  /metrics:
+    get:
+      summary: Prometheus metrics
+      tags: [System]
+      responses:
+        '200':
+          description: Prometheus text format metrics
+
+  /api/v1/status:
+    get:
+      summary: Exchange status
+      tags: [System]
+      responses:
+        '200':
+          description: Exchange status and instruments
+
+  /api/v1/instruments/{instrument_id}/book:
+    get:
+      summary: Order book snapshot
+      tags: [Market Data]
+      parameters:
+        - name: instrument_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: depth
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Order book snapshot
+
+  /api/v1/instruments/{instrument_id}/trades:
+    get:
+      summary: Recent trades
+      tags: [Market Data]
+      parameters:
+        - name: instrument_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of recent trades
+
+  /api/v1/orders:
+    post:
+      summary: Submit order
+      tags: [Trading]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderRequest'
+      responses:
+        '200':
+          description: Order events
+    delete:
+      summary: Cancel order
+      tags: [Trading]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                order_id:
+                  type: integer
+                account_id:
+                  type: integer
+                instrument_id:
+                  type: integer
+      responses:
+        '200':
+          description: Cancel events
+    put:
+      summary: Modify order
+      tags: [Trading]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                order_id:
+                  type: integer
+                account_id:
+                  type: integer
+                instrument_id:
+                  type: integer
+                price:
+                  type: number
+                quantity:
+                  type: integer
+      responses:
+        '200':
+          description: Modify events
+
+  /api/v1/risk:
+    get:
+      summary: Risk engine status
+      tags: [Risk]
+      responses:
+        '200':
+          description: Risk limits and account states
+
+  /api/v1/risk/kill-switch:
+    post:
+      summary: Activate/deactivate kill switch
+      tags: [Risk]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                active:
+                  type: boolean
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Kill switch updated
+
+  /api/v1/stream:
+    get:
+      summary: Server-sent events market data stream
+      tags: [Market Data]
+      responses:
+        '200':
+          description: SSE stream of market data events
+
+components:
+  schemas:
+    OrderRequest:
+      type: object
+      required: [client_order_id, account_id, instrument_id, side, type, quantity]
+      properties:
+        client_order_id:
+          type: integer
+        account_id:
+          type: integer
+        instrument_id:
+          type: integer
+        side:
+          type: string
+          enum: [BUY, SELL]
+        type:
+          type: string
+          enum: [LIMIT, MARKET, IOC, FOK, POST_ONLY, STOP, STOP_LIMIT]
+        price:
+          type: number
+        quantity:
+          type: integer
+        stop_price:
+          type: number
