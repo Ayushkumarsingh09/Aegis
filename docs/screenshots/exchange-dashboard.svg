@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675">
   <rect width="1200" height="675" fill="#0a0e17"/>
-  <text x="600" y="50" fill="#eef1f8" font-family="Inter,sans-serif" font-size="24" font-weight="700" text-anchor="middle">Aegis Exchange  Order Book</text>
+  <text x="600" y="50" fill="#eef1f8" font-family="Inter,sans-serif" font-size="24" font-weight="700" text-anchor="middle">Aegis Exchange - Order Book</text>
   <rect x="100" y="80" width="480" height="520" rx="8" fill="#161e2e" stroke="#243044"/>
   <text x="130" y="120" fill="#22c55e" font-family="JetBrains Mono,monospace" font-size="13">50125.00  12.5</text>
   <text x="130" y="145" fill="#22c55e" font-family="JetBrains Mono,monospace" font-size="13">50124.50  28.3</text>

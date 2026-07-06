@@ -1,5 +1,7 @@
 <p align="center">
-  <img src="docs/screenshots/portal.svg" alt="Aegis Platform" width="800"/>
+  <a href="https://aegis-platform-phi.vercel.app">
+    <img src="docs/assets/aegis-logo.png" alt="Aegis — Institutional Quantitative Trading Platform" width="360"/>
+  </a>
 </p>
 
 <h1 align="center">Aegis</h1>

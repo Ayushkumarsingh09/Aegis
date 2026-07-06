@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675">
   <rect width="1200" height="675" fill="#06080f"/>
   <text x="600" y="80" fill="#eef1f8" font-family="Inter,sans-serif" font-size="36" font-weight="700" text-anchor="middle">Aegis Platform Portal</text>
-  <text x="600" y="120" fill="#7a8ba8" font-family="Inter,sans-serif" font-size="16" text-anchor="middle">Unified Homepage  Module Navigation &amp; Live Status</text>
+  <text x="600" y="120" fill="#7a8ba8" font-family="Inter,sans-serif" font-size="16" text-anchor="middle">Unified Homepage - Module Navigation &amp; Live Status</text>
   <rect x="100" y="180" width="320" height="180" rx="12" fill="#121826" stroke="#243044"/>
   <rect x="440" y="180" width="320" height="180" rx="12" fill="#121826" stroke="#243044"/>
   <rect x="780" y="180" width="320" height="180" rx="12" fill="#121826" stroke="#243044"/>
@@ -17,5 +17,5 @@
   <text x="740" y="450" fill="#ef4444" font-family="Inter,sans-serif" font-size="14" font-weight="600" text-anchor="middle">Analytics</text>
   <text x="1000" y="450" fill="#8b5cf6" font-family="Inter,sans-serif" font-size="14" font-weight="600" text-anchor="middle">Portfolio</text>
   <rect x="200" y="580" width="800" height="60" rx="8" fill="#6366f1" opacity="0.15"/>
-  <text x="600" y="618" fill="#818cf8" font-family="Inter,sans-serif" font-size="14" text-anchor="middle">142,850 orders/sec · 4.2µs latency · Sharpe 1.84 · 45 tests passing</text>
+  <text x="600" y="618" fill="#818cf8" font-family="Inter,sans-serif" font-size="14" text-anchor="middle">142,850 orders/sec  -  4.2 - s latency  -  Sharpe 1.84  -  45 tests passing</text>
 </svg>
