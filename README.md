@@ -10,6 +10,8 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/Ayushkumarsingh09/Aegis">GitHub</a> ·
+  <a href="https://aegis-platform-phi.vercel.app">Live Portal</a> ·
   <a href="#quick-start">Quick Start</a> ·
   <a href="docs/getting-started.md">Docs</a> ·
   <a href="demo.md">Demo</a> ·
