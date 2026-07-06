@@ -1,0 +1,103 @@
+services:
+  portal:
+    build:
+      context: .
+      dockerfile: portal/docker/Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - exchange
+      - quant-api
+    networks:
+      - aegis
+    restart: unless-stopped
+
+  exchange:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    ports:
+      - "9080:8080"
+    volumes:
+      - exchange-data:/app/data
+    networks:
+      - aegis
+    restart: unless-stopped
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dashboard
+    ports:
+      - "4000:80"
+    depends_on:
+      - exchange
+    networks:
+      - aegis
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    ports:
+      - "9190:9090"
+    volumes:
+      - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    networks:
+      - aegis
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:10.4.0
+    ports:
+      - "4001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=aegis
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+    networks:
+      - aegis
+    restart: unless-stopped
+
+  quant-api:
+    build:
+      context: .
+      dockerfile: aegis-quant/docker/Dockerfile.platform
+    ports:
+      - "8090:8090"
+    environment:
+      - AEGIS_QUANT_AEGIS_EXCHANGE_URL=http://exchange:8080
+      - AEGIS_QUANT_DUCKDB_PATH=/app/data/aegis_quant.duckdb
+    volumes:
+      - quant-data:/app/data
+    depends_on:
+      - exchange
+    networks:
+      - aegis
+    restart: unless-stopped
+
+  quant-dashboard:
+    build:
+      context: ./aegis-quant
+      dockerfile: docker/Dockerfile.dashboard
+    ports:
+      - "4100:80"
+    depends_on:
+      - quant-api
+    networks:
+      - aegis
+    restart: unless-stopped
+
+volumes:
+  exchange-data:
+  prometheus-data:
+  grafana-data:
+  quant-data:
+
+networks:
+  aegis:
+    driver: bridge

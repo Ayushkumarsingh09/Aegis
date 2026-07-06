@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake g++ libssl-dev clang-tidy clang-format
+
+      - name: Check formatting
+        run: |
+          find core orderbook matching-engine risk market-data gateway server tests benchmark -name '*.cpp' -o -name '*.hpp' | xargs clang-format --dry-run --Werror
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DAEGIS_BUILD_TESTS=ON -DAEGIS_BUILD_BENCHMARKS=ON
+
+      - name: Build
+        run: cmake --build build -j$(nproc)
+
+      - name: Test
+        run: cd build && ctest --output-on-failure
+
+      - name: Run benchmarks (smoke)
+        run: build/benchmark/aegis_benchmark --benchmark_min_time=0.1
+
+  dashboard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build dashboard
+        run: |
+          cd dashboard
+          npm install
+          npm run build
+
+  python-sdk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install SDK
+        run: pip install ./sdk/python
+
+      - name: Import test
+        run: python -c "from aegis import AegisClient; print('OK')"
