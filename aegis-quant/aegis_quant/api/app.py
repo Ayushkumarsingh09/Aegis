@@ -17,6 +17,8 @@ from aegis_quant.core.logging import get_logger, setup_logging
 from aegis_quant.data.engine import MarketDataEngine
 from aegis_quant.features.engine import FeatureEngine
 from aegis_quant.ml.pipeline import MLPipeline
+from aegis_quant.ml.registry import ModelRegistry
+from aegis_quant.ml.trainer import TrainingManager
 from aegis_quant.portfolio.optimizer import PortfolioOptimizer
 from aegis_quant.risk.metrics import RiskEngine
 from aegis_quant.attribution.performance import PerformanceAttributor
@@ -48,6 +50,8 @@ feature_engine = FeatureEngine()
 risk_engine = RiskEngine()
 portfolio_optimizer = PortfolioOptimizer()
 ml_pipeline = MLPipeline()
+model_registry = ModelRegistry()
+training_manager = TrainingManager(model_registry)
 feature_store = FeatureStore()
 factor_engine = FactorResearchEngine()
 attributor = PerformanceAttributor()
@@ -85,6 +89,15 @@ class MLTrainRequest(BaseModel):
     symbol: str
     model: str = "random_forest"
     target_horizon: int = 5
+    async_mode: bool = True
+
+
+class MLPredictRequest(BaseModel):
+    n_bars: int = 20
+
+
+class MLCompareRequest(BaseModel):
+    model_ids: list[str]
 
 
 class ExecutionRequest(BaseModel):
@@ -200,25 +213,128 @@ def optimize_portfolio(req: OptimizeRequest):
     return {"method": req.method, "weights": weights.to_dict()}
 
 
+def _build_ml_dataset(symbol: str, target_horizon: int) -> tuple[pd.DataFrame, pd.Series, pd.DataFrame]:
+    """Build features/target from stored bars. Returns (X, y, featured_df)."""
+    df = data_engine.get_bars(symbol)
+    if df.empty:
+        raise HTTPException(404, f"No data for {symbol}")
+    featured = feature_engine.compute_all(df)
+    feature_cols = [
+        c for c in featured.columns
+        if c not in ("symbol", "timestamp", "open", "high", "low", "close", "volume")
+    ]
+    X = featured[feature_cols].dropna()
+    future_ret = featured["close"].shift(-target_horizon) / featured["close"] - 1
+    y = (future_ret > 0).astype(int).loc[X.index]
+    # Drop tail rows whose forward return is unknown
+    valid = future_ret.loc[X.index].notna()
+    return X.loc[valid], y.loc[valid], featured
+
+
 @app.post("/api/v1/ml/train")
 def train_model(req: MLTrainRequest):
     REQUESTS.labels(endpoint="ml_train").inc()
-    df = data_engine.get_bars(req.symbol)
-    if df.empty:
-        raise HTTPException(404, f"No data for {req.symbol}")
-    featured = feature_engine.compute_all(df)
-    feature_cols = [c for c in featured.columns if c not in ("symbol", "timestamp", "open", "high", "low", "close", "volume")]
-    X = featured[feature_cols].dropna()
-    future_ret = featured["close"].shift(-req.target_horizon) / featured["close"] - 1
-    y = (future_ret > 0).astype(int).loc[X.index]
+    X, y, _ = _build_ml_dataset(req.symbol, req.target_horizon)
+    factory = ml_pipeline.get_factory(req.model)
+    params = {"target_horizon": req.target_horizon}
 
-    result = ml_pipeline.train(X, y, model_name=req.model)
+    if req.async_mode:
+        job_id = training_manager.submit(
+            X, y, factory, req.model, req.symbol, params=params, mlflow_log=ml_pipeline.log_run
+        )
+        return {"job_id": job_id, "status": "pending"}
+
+    return training_manager.train_sync(
+        X, y, factory, req.model, req.symbol, params=params, mlflow_log=ml_pipeline.log_run
+    )
+
+
+@app.get("/api/v1/ml/train/{job_id}")
+def train_status(job_id: str):
+    job = training_manager.get_job(job_id)
+    if job is None:
+        raise HTTPException(404, f"Unknown job: {job_id}")
     return {
-        "model": result.model_name,
-        "metrics": result.metrics,
-        "run_id": result.run_id,
-        "top_features": result.feature_importance.head(10).to_dict() if result.feature_importance is not None else {},
+        "job_id": job.job_id,
+        "status": job.status,
+        "progress": job.progress,
+        "stage": job.stage,
+        "fold_scores": job.fold_scores,
+        "result": job.result,
+        "error": job.error,
     }
+
+
+@app.get("/api/v1/ml/models")
+def list_models():
+    REQUESTS.labels(endpoint="ml_models").inc()
+    return {"models": model_registry.list_models()}
+
+
+@app.get("/api/v1/ml/models/{model_id}")
+def get_model(model_id: str):
+    entry = model_registry.get(model_id)
+    if entry is None:
+        raise HTTPException(404, f"Model not found: {model_id}")
+    return entry
+
+
+@app.delete("/api/v1/ml/models/{model_id}")
+def delete_model(model_id: str):
+    if not model_registry.delete(model_id):
+        raise HTTPException(404, f"Model not found: {model_id}")
+    return {"deleted": model_id}
+
+
+@app.get("/api/v1/ml/models/{model_id}/download")
+def download_model(model_id: str):
+    from starlette.responses import FileResponse
+
+    try:
+        path = model_registry.artifact_path(model_id)
+    except KeyError:
+        raise HTTPException(404, f"Model not found: {model_id}")
+    return FileResponse(path, filename=f"aegis-model-{model_id}.joblib", media_type="application/octet-stream")
+
+
+@app.post("/api/v1/ml/models/{model_id}/predict")
+def predict_model(model_id: str, req: MLPredictRequest):
+    entry = model_registry.get(model_id)
+    if entry is None:
+        raise HTTPException(404, f"Model not found: {model_id}")
+    model = model_registry.load_model(model_id)
+    horizon = int(entry.get("params", {}).get("target_horizon", 5))
+    X, y, featured = _build_ml_dataset(entry["symbol"], horizon)
+    missing = [c for c in entry["feature_cols"] if c not in X.columns]
+    if missing:
+        raise HTTPException(422, f"Current features missing columns: {missing[:5]}")
+    X_recent = X[entry["feature_cols"]].tail(req.n_bars)
+    preds = model.predict(X_recent)
+    proba = model.predict_proba(X_recent)[:, 1].tolist() if hasattr(model, "predict_proba") else None
+    ts = featured.loc[X_recent.index, "timestamp"].astype(str).tolist()
+    closes = featured.loc[X_recent.index, "close"].round(2).tolist()
+    return {
+        "model_id": model_id,
+        "symbol": entry["symbol"],
+        "predictions": [
+            {
+                "timestamp": ts[i],
+                "close": closes[i],
+                "prediction": int(preds[i]),
+                "probability_up": round(proba[i], 4) if proba else None,
+                "actual": int(y.loc[X_recent.index[i]]),
+            }
+            for i in range(len(preds))
+        ],
+    }
+
+
+@app.post("/api/v1/ml/compare")
+def compare_models(req: MLCompareRequest):
+    rows = model_registry.compare(req.model_ids)
+    if not rows:
+        raise HTTPException(404, "No matching models")
+    return {"comparison": rows}
 
 
 @app.get("/api/v1/strategies")
@@ -299,6 +415,16 @@ def simulate_execution(req: ExecutionRequest):
         "avg_price": result.avg_price,
         "implementation_shortfall_bps": result.implementation_shortfall_bps,
         "metrics": result.metrics,
+        "fills": [
+            {
+                "timestamp": str(f.timestamp),
+                "quantity": round(f.quantity, 4),
+                "price": round(f.price, 4),
+                "slippage_bps": round(f.slippage_bps, 3),
+                "commission": round(f.commission, 4),
+            }
+            for f in result.fills
+        ],
     }
 
 
@@ -335,12 +461,27 @@ def simulate_market_maker(req: MarketMakerRequest):
         raise HTTPException(404, f"No data for {req.symbol}")
     config = MMConfig(symbol=req.symbol, gamma=req.gamma, base_size=req.base_size)
     result = MMSimulator(config).run(df)
+    history = []
+    if not result.history.empty:
+        hist = result.history.iloc[:: max(1, len(result.history) // 200)]
+        history = [
+            {
+                "timestamp": str(row["timestamp"]),
+                "mid": round(float(row["mid"]), 2),
+                "bid": round(float(row["bid"]), 2),
+                "ask": round(float(row["ask"]), 2),
+                "inventory": round(float(row["inventory"]), 2),
+                "pnl": round(float(row["pnl"]), 2),
+            }
+            for _, row in hist.iterrows()
+        ]
     return {
         "pnl": result.pnl,
         "n_fills": result.n_fills,
         "avg_spread_captured": result.avg_spread_captured,
         "max_inventory": result.max_inventory,
         "fill_rate": result.fill_rate,
+        "history": history,
     }
 
 

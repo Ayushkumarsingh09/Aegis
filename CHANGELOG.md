@@ -2,6 +2,22 @@
 
 All notable changes to the Aegis platform are documented here.
 
+## [1.1.0] - 2026-07-07
+
+### Added
+
+- **Production ML system** — Persistent model registry (joblib artifacts + JSON metadata), background training jobs with live progress reporting, holdout evaluation (accuracy, precision, recall, F1, ROC AUC), confusion matrix, ROC curve, feature importance, per-fold CV scores
+- **ML API** — `POST /ml/train` (async jobs), `GET /ml/train/{job}` (progress), `GET /ml/models` (registry), predict, compare, download, delete endpoints
+- **ML Models page** — Full workflow UI: training progress bar, evaluation charts (ROC, confusion matrix, feature importance, CV folds), model registry table, predictions vs actuals, model comparison
+- **Exchange Simulation Mode** — Dashboard auto-switches to a realistic random-walk market simulator (book, trades, risk) when the C++ backend is offline; status bar shows "Simulation"
+- **Executions page** — Fill-level results with price/slippage charts and child order table
+- **Market Making page** — PnL, inventory, and quotes-vs-mid time series from simulation history
+- **Options page** — Price/delta profiles across spot, volatility smile chart from the surface API
+- **Risk page** — Drawdown chart, stress scenarios, Monte Carlo VaR
+- **Data Explorer** — Price/volume charts, feature catalog, latest bars table
+- **Settings page** — Live service health, module status, configuration reference
+- 11 new tests (ML registry, trainer, async jobs, API integration)
+
 ## [1.0.0] - 2026-07-07
 
 ### Added

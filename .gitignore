@@ -9,6 +9,9 @@ cmake-build-*/
 /data/
 aegis-quant/data/*.duckdb
 aegis-quant/data/mlflow.db
+aegis-quant/data/models/
+aegis-quant/data/parquet/
+aegis-quant/mlruns/
 !aegis-quant/data/sample/
 !aegis-quant/data/sample/**
 *.log
@@ -36,3 +39,4 @@ htmlcov/
 .env
 compile_commands.json
 test_market_data.log
+aegis-quant/dashboard/data/

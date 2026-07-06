@@ -1,5 +1,5 @@
 import { Routes, Route, NavLink } from 'react-router-dom'
-import { LayoutDashboard, FlaskConical, LineChart, Shield, Brain, Database, Settings, BarChart3, TestTube, Zap, TrendingUp, Activity } from 'lucide-react'
+import { LayoutDashboard, FlaskConical, LineChart, Shield, Brain, Database, Settings as SettingsIcon, BarChart3, TestTube, Zap, TrendingUp, Activity } from 'lucide-react'
 import Research from './pages/Research'
 import Backtests from './pages/Backtests'
 import Portfolio from './pages/Portfolio'
@@ -11,6 +11,7 @@ import Experiments from './pages/Experiments'
 import Executions from './pages/Executions'
 import Options from './pages/Options'
 import MarketMaking from './pages/MarketMaking'
+import Settings from './pages/Settings'
 import './App.css'
 
 const NAV = [
@@ -25,7 +26,7 @@ const NAV = [
   { to: '/data', icon: Database, label: 'Data Explorer' },
   { to: '/factors', icon: BarChart3, label: 'Factors' },
   { to: '/experiments', icon: TestTube, label: 'Experiments' },
-  { to: '/settings', icon: Settings, label: 'Settings' },
+  { to: '/settings', icon: SettingsIcon, label: 'Settings' },
 ]
 export default function App() {
   return (
@@ -59,7 +60,7 @@ export default function App() {
           <Route path="/executions" element={<Executions />} />
           <Route path="/options" element={<Options />} />
           <Route path="/market-making" element={<MarketMaking />} />
-          <Route path="/settings" element={<div className="page"><h2>Settings</h2><p className="muted">API: localhost:8090 | Exchange: localhost:9080</p></div>} />
+          <Route path="/settings" element={<Settings />} />
         </Routes>
       </main>
     </div>

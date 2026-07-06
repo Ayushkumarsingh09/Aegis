@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { fetchBook, fetchTrades, fetchStatus, fetchRisk, connectEventStream, BookData, Trade, ExchangeStatus, RiskData } from '../api'
+import { marketSimulator } from '../simulation'
 
 export function useExchangeData(instrumentId: number) {
   const [book, setBook] = useState<BookData | null>(null)
@@ -7,6 +8,7 @@ export function useExchangeData(instrumentId: number) {
   const [status, setStatus] = useState<ExchangeStatus | null>(null)
   const [risk, setRisk] = useState<RiskData | null>(null)
   const [connected, setConnected] = useState(false)
+  const [simulated, setSimulated] = useState(false)
   const [latency, setLatency] = useState(0)
 
   const refresh = useCallback(async () => {
@@ -24,8 +26,16 @@ export function useExchangeData(instrumentId: number) {
       setRisk(riskData)
       setLatency(Math.round(performance.now() - start))
       setConnected(true)
+      setSimulated(false)
     } catch {
+      // Backend unavailable — switch to Simulation Mode so the UI stays alive
+      setBook(marketSimulator.book(instrumentId))
+      setTrades(marketSimulator.nextTrades(instrumentId))
+      setStatus(marketSimulator.status())
+      setRisk(marketSimulator.risk())
+      setLatency(Math.round(performance.now() - start))
       setConnected(false)
+      setSimulated(true)
     }
   }, [instrumentId])
 
@@ -49,5 +59,5 @@ export function useExchangeData(instrumentId: number) {
     }
   }, [refresh])
 
-  return { book, trades, status, risk, connected, latency, refresh }
+  return { book, trades, status, risk, connected, simulated, latency, refresh }
 }

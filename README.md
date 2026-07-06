@@ -85,7 +85,7 @@ docker compose up --build
 
 | Service | URL | Description |
 |---------|-----|-------------|
-| **Portal** | http://localhost:3000 | Unified homepage |
+| **Portal (Live)** | https://aegis-platform-phi.vercel.app | Deployed homepage |
 | **Exchange Dashboard** | http://localhost:4000 | Live order book & trading |
 | **Quant Dashboard** | http://localhost:4100 | Research & backtesting |
 | **Exchange API** | http://localhost:9080 | Matching engine REST |
@@ -121,8 +121,14 @@ See [Platform Architecture](docs/platform-architecture.md) for full details.
 ### Quant Research
 - 30+ features (VWAP, RSI, MACD, microprice, PCA, cointegration)
 - Event-driven backtester with latency & slippage simulation
-- ML pipeline (XGBoost, LightGBM, CatBoost) with MLflow tracking
 - Portfolio optimization (Markowitz, Black-Litterman, HRP, Kelly)
+
+### Machine Learning
+- 5 model families: Logistic Regression, Random Forest, XGBoost, LightGBM, CatBoost
+- Background training jobs with live progress + per-fold CV scores
+- Persistent model registry with predict, compare, download, delete
+- Full evaluation: ROC curve, confusion matrix, feature importance, holdout metrics
+- MLflow experiment tracking
 
 ### Execution Engine
 - TWAP · VWAP · POV · Iceberg · Arrival Price

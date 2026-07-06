@@ -9,11 +9,11 @@ import './App.css'
 
 function App() {
   const [instrumentId, setInstrumentId] = useState(1)
-  const { book, trades, status, risk, connected, latency, refresh } = useExchangeData(instrumentId)
+  const { book, trades, status, risk, connected, simulated, latency, refresh } = useExchangeData(instrumentId)
 
   return (
     <div className="app">
-      <StatusBar status={status} risk={risk} connected={connected} latency={latency} />
+      <StatusBar status={status} risk={risk} connected={connected} latency={latency} simulated={simulated} />
 
       <div className="instrument-tabs">
         {status?.instruments?.map((inst: { id: number; symbol: string }) => (

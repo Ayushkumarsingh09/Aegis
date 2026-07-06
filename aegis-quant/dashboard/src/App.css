@@ -44,3 +44,42 @@ select, input {
 .metric .val { font-family: var(--mono); font-size: 16px; margin-top: 4px; }
 .positive { color: var(--green); }
 .negative { color: var(--red); }
+.data-table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 13px; }
+.data-table th {
+  text-align: left; padding: 10px 12px; color: var(--muted); font-size: 11px;
+  text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border);
+}
+.data-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-family: var(--mono); }
+.data-table tr:hover td { background: var(--surface2); }
+.toolbar { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+.progress-track {
+  width: 100%; height: 8px; background: var(--surface2); border-radius: 999px; overflow: hidden;
+  margin: 8px 0;
+}
+.progress-fill {
+  height: 100%; background: linear-gradient(90deg, var(--accent), #8b5cf6);
+  border-radius: 999px; transition: width 0.4s ease;
+}
+.badge {
+  display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600;
+}
+.badge.green { background: rgba(34,197,94,0.15); color: var(--green); }
+.badge.red { background: rgba(239,68,68,0.15); color: var(--red); }
+.badge.blue { background: rgba(99,102,241,0.15); color: var(--accent); }
+.btn-sm { padding: 5px 10px; font-size: 12px; border-radius: 6px; }
+.btn-ghost {
+  background: transparent; border: 1px solid var(--border); color: var(--text);
+}
+.btn-ghost:hover { border-color: var(--accent); color: var(--accent); filter: none; }
+.confusion { display: grid; grid-template-columns: repeat(2, 90px); gap: 6px; margin-top: 8px; }
+.confusion div {
+  padding: 14px 8px; text-align: center; border-radius: 8px; font-family: var(--mono);
+  font-size: 15px; background: var(--surface2);
+}
+.confusion .cm-hit { background: rgba(34,197,94,0.18); color: var(--green); }
+.confusion .cm-miss { background: rgba(239,68,68,0.14); color: var(--red); }
+.imp-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; font-size: 12px; }
+.imp-row .imp-name { width: 140px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.imp-row .imp-bar-track { flex: 1; height: 8px; background: var(--surface2); border-radius: 4px; }
+.imp-row .imp-bar { height: 100%; background: var(--accent); border-radius: 4px; }
+.imp-row .imp-val { width: 56px; text-align: right; font-family: var(--mono); }

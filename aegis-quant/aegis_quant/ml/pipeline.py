@@ -96,6 +96,21 @@ class MLPipeline:
         model.fit(X, y)
         return model.predict(X)
 
+    def get_factory(self, model_name: str):
+        """Return a zero-arg model factory for the given model name."""
+        factory = self.MODELS.get(model_name)
+        if factory is None:
+            factory = self._get_boosting_model(model_name)
+        return factory
+
+    def log_run(self, model_name: str, metrics: dict[str, float]) -> str:
+        """Log a completed training run to MLflow and return the run id."""
+        with mlflow.start_run() as run:
+            mlflow.log_param("model", model_name)
+            for key, value in metrics.items():
+                mlflow.log_metric(key, float(value))
+            return run.info.run_id
+
     @staticmethod
     def _get_boosting_model(name: str):
         if name == "xgboost":

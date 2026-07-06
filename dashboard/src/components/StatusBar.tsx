@@ -7,9 +7,10 @@ interface Props {
   risk: RiskData | null
   connected: boolean
   latency: number
+  simulated?: boolean
 }
 
-export default function StatusBar({ status, risk, connected, latency }: Props) {
+export default function StatusBar({ status, risk, connected, latency, simulated }: Props) {
   return (
     <header className="status-bar">
       <div className="brand">
@@ -34,8 +35,8 @@ export default function StatusBar({ status, risk, connected, latency }: Props) {
         <div className="metric">
           {connected ? <Wifi size={14} className="connected" /> : <WifiOff size={14} className="disconnected" />}
           <span className="label">Status</span>
-          <span className={`value ${connected ? 'connected' : 'disconnected'}`}>
-            {connected ? 'Live' : 'Offline'}
+          <span className={`value ${connected ? 'connected' : simulated ? 'sim' : 'disconnected'}`}>
+            {connected ? 'Live' : simulated ? 'Simulation' : 'Offline'}
           </span>
         </div>
         <div className="metric">
